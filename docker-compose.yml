@@ -5,8 +5,8 @@ services:
     container_name: paper-mini-synth
     restart: unless-stopped
     ports:
-      # Change the host port (left side) if 8080 is in use.
-      - "8080:80"
+      # Change the host port (left side) if 8088 is in use.
+      - "8088:80"
     # Uncomment if you front this with Traefik / Caddy on the same network:
     # networks:
     #   - web
