@@ -82,11 +82,8 @@ export function ChordZone() {
       // never accidentally morphs the chord.
       const baseType = SCALE_CHORD_TYPES[entry.index];
       if (entry.voicing !== baseType) {
-        audio.releaseChord(entry.notes);
         const baseNotes = pickNotes(entry.index, baseType);
-        engineAttackChord(baseNotes);
-        entry.voicing = baseType;
-        entry.notes = baseNotes;
+        morphVoicing(entry, baseNotes, baseType);
       }
       return;
     }
@@ -107,13 +104,26 @@ export function ChordZone() {
     const baseType = SCALE_CHORD_TYPES[entry.index];
     const newVoicing = resolveVoicing(baseType, cleanDx, cleanDy);
     if (newVoicing !== entry.voicing) {
-      audio.releaseChord(entry.notes);
       const nextNotes = pickNotes(entry.index, newVoicing);
-      engineAttackChord(nextNotes);
-      entry.voicing = newVoicing;
-      entry.notes = nextNotes;
+      morphVoicing(entry, nextNotes, newVoicing);
     }
   };
+
+  /** Voicing morph that only releases the notes that disappear and only
+   *  attacks the notes that newly join — avoids the audible click that
+   *  comes from release+attack-ing notes that exist in both voicings. */
+  function morphVoicing(
+    entry: { notes: string[]; voicing: string },
+    nextNotes: string[],
+    nextVoicing: string,
+  ) {
+    const toRelease = entry.notes.filter((n) => !nextNotes.includes(n));
+    const toAttack = nextNotes.filter((n) => !entry.notes.includes(n));
+    if (toRelease.length > 0) audio.releaseChord(toRelease);
+    if (toAttack.length > 0) engineAttackChord(toAttack);
+    entry.voicing = nextVoicing;
+    entry.notes = nextNotes;
+  }
 
   const onUp = (e: PointerEvent<HTMLButtonElement>) => {
     const entry = active.current.get(e.pointerId);

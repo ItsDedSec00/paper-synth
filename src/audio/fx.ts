@@ -2,12 +2,13 @@ import { DREAMY, getEngine } from './engine';
 
 /**
  * Touch-drag → live FX modulation.
- * All ramps are short (50–80ms) so movement feels responsive; release ramps
- * back to the DREAMY preset over 300ms — no clicks or pops.
+ * Engage ramps are 120 ms (clearly audible as a fade-in instead of an
+ * abrupt jump) and release ramps are 450 ms (smooth ease-out back to
+ * baseline so the FX visibly fades when the finger lifts).
  */
 
-const RAMP_UP = 0.05;   // 50ms
-const RAMP_DOWN = 0.3;  // 300ms
+const RAMP_UP = 0.12;
+const RAMP_DOWN = 0.45;
 
 export type FXLabel = { label: string; value: string };
 

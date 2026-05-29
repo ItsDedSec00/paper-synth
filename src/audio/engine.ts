@@ -17,6 +17,12 @@ export type Engine = {
   reverb: Tone.Reverb;
   /** A pre-Destination tap (post-reverb) the looper records from. */
   recorderTap: Tone.Gain;
+  /** Master gain after all effects — leaves headroom for the limiter. */
+  masterGain: Tone.Gain;
+  /** Brick-wall limiter at the very end of the chain — prevents the
+   *  output from clipping when many voices + wet FX stack up. Without it
+   *  iOS chokes the output and you get crackles + dropped voices. */
+  limiter: Tone.Limiter;
 };
 
 let engine: Engine | null = null;
@@ -45,8 +51,13 @@ export async function initEngine(): Promise<Engine> {
     const synth = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: 'triangle' },
       envelope: { ...DREAMY.envelope },
+      // Per-voice volume cut so a fully-stacked chord + note + loop don't
+      // sum past unity before the limiter kicks in.
+      volume: -8,
     });
-    synth.maxPolyphony = 16;
+    // Generous polyphony so chords (up to 4 voices) + held notes + voicing
+    // morphs (release tails) + looper playback never steal active voices.
+    synth.maxPolyphony = 32;
 
     const vibrato = new Tone.Vibrato({ frequency: 5, depth: DREAMY.vibratoDepth });
     const tremolo = new Tone.Tremolo({ frequency: 4, depth: DREAMY.tremoloDepth }).start();
@@ -66,8 +77,23 @@ export async function initEngine(): Promise<Engine> {
     await reverb.generate();
 
     const recorderTap = new Tone.Gain(1);
+    const masterGain = new Tone.Gain(0.85);
+    // -1 dB brick-wall — keeps the output musical instead of distorted
+    // when many voices and high FX wet levels stack up.
+    const limiter = new Tone.Limiter(-1);
 
-    synth.chain(vibrato, tremolo, filter, chorus, delay, reverb, recorderTap, Tone.Destination);
+    synth.chain(
+      vibrato,
+      tremolo,
+      filter,
+      chorus,
+      delay,
+      reverb,
+      recorderTap,
+      masterGain,
+      limiter,
+      Tone.Destination,
+    );
 
     engine = {
       synth,
@@ -78,6 +104,8 @@ export async function initEngine(): Promise<Engine> {
       delay,
       reverb,
       recorderTap,
+      masterGain,
+      limiter,
     };
     return engine;
   })();
