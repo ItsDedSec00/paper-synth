@@ -17,11 +17,13 @@ export type Engine = {
   reverb: Tone.Reverb;
   /** A pre-Destination tap (post-reverb) the looper records from. */
   recorderTap: Tone.Gain;
-  /** Master gain after all effects — leaves headroom for the compressor. */
+  /** Master gain after all effects — controls overall headroom. */
   masterGain: Tone.Gain;
-  /** Soft-knee compressor catching peaks. Slow release so it doesn't
-   *  audibly pump on sustained notes the way a hard limiter does. */
+  /** Gentle bus compressor — glues the chord+note signal without pumping. */
   compressor: Tone.Compressor;
+  /** Final soft limiter — catches isolated peaks so the master out never
+   *  clips and iOS doesn't have to fire its own emergency duck. */
+  safeLimiter: Tone.Compressor;
 };
 
 let engine: Engine | null = null;
@@ -53,6 +55,9 @@ export async function initEngine(): Promise<Engine> {
     const synth = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: 'triangle' },
       envelope: { ...DREAMY.envelope },
+      // Per-voice cut so 4-voice chord + simultaneous note + reverb wet
+      // never sum past the safe-limiter threshold in one place.
+      volume: -8,
     });
     // Generous polyphony so chords (up to 4 voices) + held notes + voicing
     // morphs (release tails) + looper playback never steal active voices.
@@ -72,22 +77,34 @@ export async function initEngine(): Promise<Engine> {
       feedback: DREAMY.delayFeedback,
       wet: DREAMY.delayWet,
     });
-    const reverb = new Tone.Reverb({ decay: DREAMY.reverbDecay, wet: DREAMY.reverbWet });
+    // Shorter reverb decay (3 s instead of 5 s) keeps the impulse response
+    // small enough that iOS Safari's worklet doesn't choke when many
+    // voices feed it simultaneously.
+    const reverb = new Tone.Reverb({ decay: 3, wet: DREAMY.reverbWet });
     await reverb.generate();
 
     const recorderTap = new Tone.Gain(1);
-    // Master gain handles most of the headroom — quarter unity so 4-voice
-    // chords + wet reverb + delay summed together stay well below clipping.
-    const masterGain = new Tone.Gain(0.35);
-    // Soft-knee compressor as a safety net — only engages on real peaks,
-    // releases over 250 ms so it never pumps audibly on sustained notes
-    // (which a fast brick-wall limiter does, killing held chords).
+    const masterGain = new Tone.Gain(0.6);
+
+    // Stage 1 — gentle bus glue. Long release so it never pumps audibly
+    // on sustained held chords (which is what killed the tone before).
     const compressor = new Tone.Compressor({
-      threshold: -6,
-      ratio: 3,
-      attack: 0.01,
-      release: 0.25,
-      knee: 8,
+      threshold: -10,
+      ratio: 2.5,
+      attack: 0.015,
+      release: 0.3,
+      knee: 12,
+    });
+
+    // Stage 2 — soft limiter as a brick wall against isolated peaks
+    // (chord + note + reverb wet in phase). Release long enough that it
+    // stays musical on sustained content.
+    const safeLimiter = new Tone.Compressor({
+      threshold: -2,
+      ratio: 12,
+      attack: 0.003,
+      release: 0.18,
+      knee: 4,
     });
 
     synth.chain(
@@ -100,6 +117,7 @@ export async function initEngine(): Promise<Engine> {
       recorderTap,
       masterGain,
       compressor,
+      safeLimiter,
       Tone.Destination,
     );
 
@@ -114,6 +132,7 @@ export async function initEngine(): Promise<Engine> {
       recorderTap,
       masterGain,
       compressor,
+      safeLimiter,
     };
     return engine;
   })();

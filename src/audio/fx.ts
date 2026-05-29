@@ -1,4 +1,37 @@
+import * as Tone from 'tone';
 import { DREAMY, getEngine } from './engine';
+
+/**
+ * Ramp the detune of every voice in a PolySynth as a Signal instead of
+ * via synth.set() (which jumps instantaneously and kills active voices
+ * on iOS Safari). PolySynth keeps its voices in a private `_voices`
+ * array — each voice is a Tone.Synth and exposes a rampable detune
+ * Signal we can target individually.
+ */
+function rampPolyDetune(
+  synth: Tone.PolySynth<Tone.Synth>,
+  cents: number,
+  rampTime: number,
+): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const voices = (synth as any)._voices as
+    | { detune?: Tone.Signal<'cents'> }[]
+    | undefined;
+  if (!voices) {
+    synth.set({ detune: cents });
+    return;
+  }
+  for (const voice of voices) {
+    const det = voice?.detune;
+    if (det && typeof det.rampTo === 'function') {
+      det.cancelScheduledValues(0);
+      det.rampTo(cents, rampTime);
+    }
+  }
+  // Also update the synth's template so future-spawned voices inherit
+  // the bent pitch (otherwise a new voice would start at 0 ¢).
+  synth.set({ detune: cents });
+}
 
 /**
  * Touch-drag → live FX modulation.
@@ -76,8 +109,12 @@ export function applyChordFX(deltaX: number, deltaY: number): FXLabel | null {
   }
 
   // X-axis dominant — pitch bend. Full ±200 cents reached at ~80 px drag.
+  // Ramp every voice's detune Signal individually instead of
+  // synth.set({ detune }) — set is instant and the sudden frequency jump
+  // kills active voices on iOS Safari (the "tone stops coming back from
+  // +200 ¢" bug).
   const cents = Math.round(clamp(deltaX * 2.5, -200, 200));
-  e.synth.set({ detune: cents });
+  rampPolyDetune(e.synth, cents, RAMP_UP);
   const sign = cents >= 0 ? '+' : '';
   return { label: 'BEND', value: `${sign}${cents}¢` };
 }
@@ -139,5 +176,8 @@ export function resetFXSmooth(): void {
   e.tremolo.depth.rampTo(DREAMY.tremoloDepth, RAMP_DOWN);
   e.tremolo.frequency.cancelScheduledValues(0);
   e.tremolo.frequency.rampTo(4, RAMP_DOWN);
-  e.synth.set({ envelope: { release: DREAMY.envelope.release }, detune: 0 });
+  // Per-voice detune ramp back to 0 ¢ so a held chord doesn't get killed
+  // by a sudden frequency snap-back when the finger leaves.
+  rampPolyDetune(e.synth, 0, RAMP_DOWN);
+  e.synth.set({ envelope: { release: DREAMY.envelope.release } });
 }
