@@ -74,12 +74,15 @@ export function ChordZone() {
     // Inside the deadzone — clear any FX we might have engaged on a previous
     // move, but don't react to the small jitter.
     if (dist < DEADZONE) {
+      // Crossing back into the deadzone — ramp every modulated audio param
+      // smoothly back to its DREAMY baseline. Without this the last FX
+      // value (e.g. vibrato depth 1.0) sticks at whatever it was when the
+      // finger left the engaged region, even when the UI label is gone.
       if (fx) {
         setFX(null);
         audio.setCurrentFX(null);
+        resetFXSmooth();
       }
-      // Snap voicing back to base while inside the deadzone so a clean tap
-      // never accidentally morphs the chord.
       const baseType = SCALE_CHORD_TYPES[entry.index];
       if (entry.voicing !== baseType) {
         const baseNotes = pickNotes(entry.index, baseType);

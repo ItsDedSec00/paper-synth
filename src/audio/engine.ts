@@ -17,12 +17,11 @@ export type Engine = {
   reverb: Tone.Reverb;
   /** A pre-Destination tap (post-reverb) the looper records from. */
   recorderTap: Tone.Gain;
-  /** Master gain after all effects — leaves headroom for the limiter. */
+  /** Master gain after all effects — leaves headroom for the compressor. */
   masterGain: Tone.Gain;
-  /** Brick-wall limiter at the very end of the chain — prevents the
-   *  output from clipping when many voices + wet FX stack up. Without it
-   *  iOS chokes the output and you get crackles + dropped voices. */
-  limiter: Tone.Limiter;
+  /** Soft-knee compressor catching peaks. Slow release so it doesn't
+   *  audibly pump on sustained notes the way a hard limiter does. */
+  compressor: Tone.Compressor;
 };
 
 let engine: Engine | null = null;
@@ -30,7 +29,10 @@ let initPromise: Promise<Engine> | null = null;
 
 /** Dreamy preset values — applied on init and used as "default" by resetFXSmooth. */
 export const DREAMY = {
-  envelope: { attack: 0.4, decay: 0.2, sustain: 0.7, release: 3.0 },
+  // Sustain at 0.9 so a held key stays at almost full peak amplitude
+  // instead of dipping to 0.7 right after the decay phase (which the ear
+  // hears as "the note got quieter / stopped").
+  envelope: { attack: 0.4, decay: 0.2, sustain: 0.9, release: 3.0 },
   reverbWet: 0.55,
   reverbDecay: 5,
   delayWet: 0.25,
@@ -51,9 +53,6 @@ export async function initEngine(): Promise<Engine> {
     const synth = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: 'triangle' },
       envelope: { ...DREAMY.envelope },
-      // Per-voice volume cut so a fully-stacked chord + note + loop don't
-      // sum past unity before the limiter kicks in.
-      volume: -8,
     });
     // Generous polyphony so chords (up to 4 voices) + held notes + voicing
     // morphs (release tails) + looper playback never steal active voices.
@@ -77,10 +76,19 @@ export async function initEngine(): Promise<Engine> {
     await reverb.generate();
 
     const recorderTap = new Tone.Gain(1);
-    const masterGain = new Tone.Gain(0.85);
-    // -1 dB brick-wall — keeps the output musical instead of distorted
-    // when many voices and high FX wet levels stack up.
-    const limiter = new Tone.Limiter(-1);
+    // Master gain handles most of the headroom — quarter unity so 4-voice
+    // chords + wet reverb + delay summed together stay well below clipping.
+    const masterGain = new Tone.Gain(0.35);
+    // Soft-knee compressor as a safety net — only engages on real peaks,
+    // releases over 250 ms so it never pumps audibly on sustained notes
+    // (which a fast brick-wall limiter does, killing held chords).
+    const compressor = new Tone.Compressor({
+      threshold: -6,
+      ratio: 3,
+      attack: 0.01,
+      release: 0.25,
+      knee: 8,
+    });
 
     synth.chain(
       vibrato,
@@ -91,7 +99,7 @@ export async function initEngine(): Promise<Engine> {
       reverb,
       recorderTap,
       masterGain,
-      limiter,
+      compressor,
       Tone.Destination,
     );
 
@@ -105,7 +113,7 @@ export async function initEngine(): Promise<Engine> {
       reverb,
       recorderTap,
       masterGain,
-      limiter,
+      compressor,
     };
     return engine;
   })();

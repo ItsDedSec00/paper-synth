@@ -62,9 +62,14 @@ export function NoteZone() {
     // Inside the deadzone — clear any engaged FX and snap any octave-shift
     // back to the base note so a clean tap doesn't bend pitch.
     if (dist < DEADZONE) {
+      // Re-entering the deadzone — ramp the audio FX (vibrato depth,
+      // tremolo rate, etc.) smoothly back to baseline. Without this, the
+      // last engaged value (e.g. vibrato 100 %) sticks at the Tone.js
+      // param even though the UI label is cleared.
       if (fx) {
         setFX(null);
         audio.setCurrentFX(null);
+        resetFXSmooth();
       }
       if (entry.octShifted) {
         engineReleaseNote(entry.note);
