@@ -1,0 +1,75 @@
+/* Track-button states inside the looper bar.
+   The inner dot drives the colour; the keycap chassis stays neutral. */
+
+.btn--track {
+  position: relative;
+}
+
+.btn--track .btn__label {
+  font-size: clamp(8px, 1.2vmin, 11px);
+  color: var(--text-dim);
+  position: absolute;
+  bottom: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  letter-spacing: 0.15em;
+}
+
+.track__dot {
+  display: block;
+  width: 50%;
+  height: 50%;
+  border-radius: 50%;
+  background: #2a2a2a;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8);
+  transition: background 120ms ease, box-shadow 120ms ease;
+}
+
+/* EMPTY — neutral grey dot (default) */
+.btn--track.track--empty .track__dot {
+  background: #2a2a2a;
+}
+
+/* WAITING — slow amber pulse */
+.btn--track.track--waiting .track__dot {
+  background: #553a18;
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.4),
+    0 0 8px rgba(200, 160, 64, 0.4);
+  animation: track-wait 1s ease-in-out infinite;
+}
+
+@keyframes track-wait {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 1;   }
+}
+
+/* RECORDING — fast red pulse */
+.btn--track.track--recording .track__dot {
+  background: var(--looper-rec);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.4),
+    0 0 10px rgba(180, 40, 40, 0.7);
+  animation: track-rec 500ms ease-in-out infinite;
+}
+
+@keyframes track-rec {
+  0%, 100% { opacity: 0.6; transform: scale(0.92); }
+  50%      { opacity: 1;   transform: scale(1.05); }
+}
+
+/* PLAYING — steady green glow */
+.btn--track.track--playing .track__dot {
+  background: #2a8040;
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.4),
+    0 0 10px rgba(50, 160, 80, 0.55);
+}
+
+/* MUTED — dim green */
+.btn--track.track--muted .track__dot {
+  background: var(--looper-play);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.4);
+}

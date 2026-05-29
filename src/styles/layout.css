@@ -1,0 +1,197 @@
+/* Three-row grid: encoder header, play area, looper bar.
+   Play row gets the most room so chord/note keys are big and touch-friendly. */
+.device-grid {
+  position: absolute;
+  inset: 0;
+  padding: clamp(6px, 1vmin, 14px);
+  display: grid;
+  grid-template-rows: 12% 72% 16%;
+  gap: clamp(4px, 0.7vmin, 10px);
+  z-index: 2;
+}
+
+.zone {
+  position: relative;
+  border-radius: 6px;
+  min-height: 0;
+}
+
+/* Middle row: chord ~38% / display ~24% / note ~38%.
+   Use fr units so the column gaps are subtracted from the available width
+   before the columns are sized — percentages would push the total past 100%
+   and cause the right-edge note buttons to overflow the device. */
+.zone--play {
+  display: grid;
+  grid-template-columns: 38fr 24fr 38fr;
+  gap: clamp(6px, 1vmin, 14px);
+  min-height: 0;
+}
+
+/* --- Header row (encoders, with empty mid-space for symmetry around the display) --- */
+.header-controls {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: center;
+  gap: clamp(8px, 1.5vmin, 16px);
+  padding: 0 clamp(6px, 1vmin, 12px);
+}
+
+.header-controls__group {
+  display: flex;
+  gap: clamp(6px, 1vmin, 12px);
+  align-items: center;
+}
+
+.header-controls__group--left {
+  justify-content: flex-start;
+}
+
+.header-controls__group--right {
+  justify-content: flex-end;
+}
+
+.header-controls__spacer {
+  height: 1px;
+}
+
+/* --- Play zone — chord / note button grids (3+3+1) --- */
+.play-zone {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 0;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.play-zone__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  /* All three rows equal height — every key is the same size. The 7th key
+     in each grid spans the full bottom row so nothing looks "smaller" and
+     no cells are left empty next to it. */
+  grid-template-rows: repeat(3, 1fr);
+  gap: clamp(4px, 0.8vmin, 12px);
+  width: 100%;
+  height: 100%;
+}
+
+.play-zone__grid .btn {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+/* Bottom row key (vii° / 7) spans the entire row so there are no empty
+   cells and every chord/note button reads at the same height. */
+.play-zone__grid--chord > :nth-child(7),
+.play-zone__grid--note > :nth-child(7) {
+  grid-column: 1 / -1;
+  grid-row: 3;
+}
+
+/* --- Looper bar (bottom row) --- */
+.looper-bar {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: center;
+  gap: clamp(8px, 1.5vmin, 16px);
+  padding: 0 clamp(6px, 1vmin, 12px);
+  border-top: 1px solid #1a1a1a;
+}
+
+.looper-bar__tracks {
+  display: flex;
+  gap: clamp(8px, 1.2vmin, 14px);
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.looper-bar__tracks .btn--track {
+  height: clamp(28px, 5vmin, 48px);
+  width: clamp(28px, 5vmin, 48px);
+  min-width: 0;
+}
+
+.looper-bar__bpm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--display-text);
+  font-family: var(--font-mono);
+  text-shadow: 0 0 6px rgba(200, 255, 200, 0.4);
+}
+
+.looper-bar__bpm-value {
+  font-size: clamp(18px, 3.6vmin, 32px);
+  line-height: 1;
+}
+
+.looper-bar__bpm-unit {
+  font-size: clamp(9px, 1.4vmin, 12px);
+  color: var(--display-dim);
+  letter-spacing: 0.2em;
+}
+
+.looper-bar__modes {
+  display: flex;
+  gap: clamp(6px, 1vmin, 12px);
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* --- Display zone — placeholder OLED look (Phase 6 fleshes it out) --- */
+.zone--display {
+  background: var(--display-bg);
+  border-radius: 8px;
+  border: 1px solid #1a2a1a;
+  box-shadow:
+    inset 0 0 20px rgba(0, 0, 0, 0.8),
+    inset 0 0 4px rgba(200, 255, 200, 0.05);
+}
+
+/* --- FX overlay (shown over a held button while dragging) --- */
+.play-zone {
+  position: relative;
+}
+
+.fx-overlay {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--display-bg);
+  border: 1px solid var(--display-dim);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  color: var(--display-text);
+  text-shadow: 0 0 6px rgba(200, 255, 200, 0.4);
+  font-size: clamp(10px, 1.5vmin, 13px);
+  letter-spacing: 0.15em;
+  pointer-events: none;
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  animation: fx-fade-in 80ms ease;
+  white-space: nowrap;
+}
+
+.fx-overlay__label {
+  color: var(--display-text);
+}
+
+.fx-overlay__value {
+  color: var(--display-dim);
+}
+
+@keyframes fx-fade-in {
+  from { opacity: 0; transform: translate(-50%, -4px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}

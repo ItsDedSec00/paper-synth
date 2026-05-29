@@ -1,0 +1,21 @@
+services:
+  synth:
+    build: .
+    image: paper-mini-synth:latest
+    container_name: paper-mini-synth
+    restart: unless-stopped
+    ports:
+      # Change the host port (left side) if 8080 is in use.
+      - "8080:80"
+    # Uncomment if you front this with Traefik / Caddy on the same network:
+    # networks:
+    #   - web
+    # labels:
+    #   - "traefik.enable=true"
+    #   - "traefik.http.routers.synth.rule=Host(`synth.example.com`)"
+    #   - "traefik.http.routers.synth.entrypoints=websecure"
+    #   - "traefik.http.routers.synth.tls.certresolver=letsencrypt"
+
+# networks:
+#   web:
+#     external: true

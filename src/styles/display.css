@@ -1,0 +1,106 @@
+.display {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: var(--display-bg);
+  border-radius: 6px;
+  border: 1px solid #1a2a1a;
+  box-shadow:
+    inset 0 0 24px rgba(0, 0, 0, 0.85),
+    inset 0 0 4px rgba(200, 255, 200, 0.06),
+    0 0 12px rgba(40, 100, 40, 0.15);
+  overflow: hidden;
+  isolation: isolate;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Pixel star field sits behind everything inside the panel. */
+.star-field {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  z-index: 0;
+}
+
+.display__scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(200, 255, 200, 0.05) 0px,
+    rgba(200, 255, 200, 0.05) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: screen;
+  z-index: 2;
+}
+
+.display__content {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: clamp(2px, 0.6vmin, 6px);
+  padding: clamp(6px, 1.2vmin, 12px);
+  color: var(--display-text);
+  font-family: var(--font-mono);
+  text-shadow:
+    0 0 4px rgba(200, 255, 200, 0.5),
+    0 0 12px rgba(200, 255, 200, 0.2);
+}
+
+.display__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: clamp(8px, 1.3vmin, 11px);
+  letter-spacing: 0.2em;
+  color: var(--display-text);
+}
+
+.display__mode { color: var(--display-text); }
+.display__tracks {
+  color: var(--display-dim);
+  font-family: var(--font-mono);
+  font-size: clamp(9px, 1.4vmin, 12px);
+  letter-spacing: 0.05em;
+}
+
+.display__pet {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.paper-plane {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: block;
+  max-width: 55%;
+  max-height: 55%;
+  height: auto;
+  width: auto;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.4));
+}
+
+.display__logo {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: clamp(14px, 2.6vmin, 22px);
+  letter-spacing: 0.35em;
+  color: var(--display-text);
+  text-transform: uppercase;
+  text-shadow:
+    0 0 4px rgba(200, 255, 200, 0.6),
+    0 0 14px rgba(200, 255, 200, 0.25);
+}

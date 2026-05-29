@@ -1,0 +1,36 @@
+:root {
+  /* Body / surfaces */
+  --bg: #0a0a0a;
+  --body: #111111;
+  --panel: #161616;
+  --metal-edge: #2a2a2a;
+
+  /* Buttons */
+  --btn-base: #1e1e1e;
+  --btn-top: #252525;
+
+  /* Accent / active */
+  --accent: #d0c8b8;
+  --active: #c8a040;
+  --active-glow: rgba(200, 160, 64, 0.35);
+
+  /* OLED display */
+  --display-bg: #0a0f08;
+  --display-text: #c8ffc8;
+  --display-dim: #3a6a3a;
+
+  /* Looper */
+  --looper-rec: #7a1818;
+  --looper-play: #1a4020;
+
+  /* Text */
+  --text: #908880;
+  --text-dim: #403830;
+
+  /* Hardware details */
+  --screw: #1a1a1a;
+
+  /* Fonts */
+  --font-display: 'Chakra Petch', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Share Tech Mono', 'Consolas', monospace;
+}

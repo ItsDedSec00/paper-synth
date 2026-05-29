@@ -1,0 +1,76 @@
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  color: var(--display-text);
+  font-family: var(--font-mono);
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  overflow: hidden;
+}
+
+.splash__scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(200, 255, 200, 0.04) 0px,
+    rgba(200, 255, 200, 0.04) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  animation: splash-scan 6s linear infinite;
+  z-index: 1;
+}
+
+@keyframes splash-scan {
+  from { transform: translateY(0); }
+  to { transform: translateY(3px); }
+}
+
+.splash__content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(14px, 3vmin, 30px);
+  text-shadow:
+    0 0 6px rgba(200, 255, 200, 0.5),
+    0 0 16px rgba(200, 255, 200, 0.25);
+}
+
+.splash__logo {
+  margin: 0;
+  font-size: clamp(8px, 1.8vmin, 14px);
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: pre;
+  color: var(--display-text);
+}
+
+.splash__sub {
+  font-size: clamp(10px, 1.6vmin, 14px);
+  letter-spacing: 0.4em;
+  color: var(--display-dim);
+  text-transform: uppercase;
+}
+
+.splash__prompt {
+  margin-top: clamp(20px, 4vmin, 40px);
+  font-size: clamp(13px, 2vmin, 18px);
+  letter-spacing: 0.2em;
+  color: var(--display-text);
+}
+
+.splash__cursor {
+  display: inline-block;
+  width: 0.6ch;
+  transition: opacity 80ms linear;
+}
