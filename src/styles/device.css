@@ -6,20 +6,29 @@
   align-items: center;
   justify-content: center;
   background: var(--bg);
-  /* Always-on margin so the joystick can swing past the device edge
-     even when the device otherwise fills the viewport. */
-  padding: clamp(10px, 2.5vmin, 36px);
   box-sizing: border-box;
+  /* Base padding — joystick room around the device. */
+  padding: clamp(10px, 2.5vmin, 36px);
+  /* Honour notch / safe areas on iOS so nothing slides under the system UI. */
+  padding-top: max(clamp(10px, 2.5vmin, 36px), env(safe-area-inset-top));
+  padding-bottom: max(clamp(10px, 2.5vmin, 36px), env(safe-area-inset-bottom));
+  padding-left: max(clamp(10px, 2.5vmin, 36px), env(safe-area-inset-left));
+  padding-right: max(clamp(10px, 2.5vmin, 36px), env(safe-area-inset-right));
 }
 
 /* The device shell — brushed-aluminium body with rounded corners.
    Always fills as much of the viewport as possible while preserving 16:9. */
 .device-body {
   position: relative;
-  /* Smallest of available height and what 16:9 lets the width be —
-     this works on any aspect ratio without overflow. */
+  /* Legacy fallback (older Safari without dvw / dvh support). */
   --avail-w: calc(100vw - clamp(20px, 5vmin, 72px));
   --avail-h: calc(100vh - clamp(20px, 5vmin, 72px));
+  height: min(var(--avail-h), calc(var(--avail-w) * 9 / 16));
+  /* iOS Safari 15.4+ and modern Chrome: dvw / dvh exclude browser chrome
+     (URL bar, bottom nav) so the device fits the actually visible area
+     instead of getting clipped behind the URL bar. */
+  --avail-w: calc(100dvw - clamp(20px, 5vmin, 72px));
+  --avail-h: calc(100dvh - clamp(20px, 5vmin, 72px));
   height: min(var(--avail-h), calc(var(--avail-w) * 9 / 16));
   aspect-ratio: 16 / 9;
   background: var(--body);
