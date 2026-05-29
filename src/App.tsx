@@ -1,5 +1,5 @@
 import { Device } from './components/Device';
-import { Splash } from './components/Splash';
+import { Loading } from './components/Loading';
 import { OrientationGate } from './components/OrientationGate';
 import { useAudioEngine } from './hooks/useAudioEngine';
 import { AudioProvider } from './hooks/AudioContext';
@@ -10,13 +10,10 @@ function App() {
   return (
     <>
       <OrientationGate />
-      {audio.started ? (
-        <AudioProvider value={audio}>
-          <Device />
-        </AudioProvider>
-      ) : (
-        <Splash onStart={audio.start} />
-      )}
+      <AudioProvider value={audio}>
+        <Device />
+      </AudioProvider>
+      <Loading />
     </>
   );
 }

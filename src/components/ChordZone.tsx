@@ -13,7 +13,10 @@ import {
   transposeOctave,
 } from '../audio/chords';
 
-const THRESHOLD = 8;
+/** Touch-input deadzone in px. Below this radius from the press origin we
+ *  treat the touch as a clean tap and don't engage any FX modulation —
+ *  prevents unintentional drag from finger jitter. */
+const DEADZONE = 24;
 
 export function ChordZone() {
   const audio = useAudio();
@@ -66,17 +69,44 @@ export function ChordZone() {
     e.preventDefault();
     const dx = e.clientX - entry.startX;
     const dy = e.clientY - entry.startY;
-    if (Math.hypot(dx, dy) < THRESHOLD) return;
+    const dist = Math.hypot(dx, dy);
 
-    const label = applyChordFX(dx, dy);
+    // Inside the deadzone — clear any FX we might have engaged on a previous
+    // move, but don't react to the small jitter.
+    if (dist < DEADZONE) {
+      if (fx) {
+        setFX(null);
+        audio.setCurrentFX(null);
+      }
+      // Snap voicing back to base while inside the deadzone so a clean tap
+      // never accidentally morphs the chord.
+      const baseType = SCALE_CHORD_TYPES[entry.index];
+      if (entry.voicing !== baseType) {
+        audio.releaseChord(entry.notes);
+        const baseNotes = pickNotes(entry.index, baseType);
+        engineAttackChord(baseNotes);
+        entry.voicing = baseType;
+        entry.notes = baseNotes;
+      }
+      return;
+    }
+
+    // Subtract the deadzone radially so the FX engages from zero past the
+    // edge of the deadzone instead of snapping to whatever the formula
+    // produces at threshold + 1 px.
+    const scale = (dist - DEADZONE) / dist;
+    const cleanDx = dx * scale;
+    const cleanDy = dy * scale;
+
+    const label = applyChordFX(cleanDx, cleanDy);
     setFX(label);
     audio.setCurrentFX(label);
 
-    // X-axis: swap voicing on the fly if it's changed
+    // X-axis: swap voicing on the fly if it's changed (using the cleaned
+    // delta so the morph thresholds also respect the deadzone).
     const baseType = SCALE_CHORD_TYPES[entry.index];
-    const newVoicing = resolveVoicing(baseType, dx, dy);
+    const newVoicing = resolveVoicing(baseType, cleanDx, cleanDy);
     if (newVoicing !== entry.voicing) {
-      // Release old notes, attack new ones — gives the live chord-morph effect.
       audio.releaseChord(entry.notes);
       const nextNotes = pickNotes(entry.index, newVoicing);
       engineAttackChord(nextNotes);

@@ -6,7 +6,9 @@ import { applyNoteFX, resetFXSmooth, type FXLabel } from '../audio/fx';
 import { attackNote as engineAttackNote, releaseNote as engineReleaseNote } from '../audio/engine';
 import { SCALE_ROOTS, transposeOctave } from '../audio/chords';
 
-const THRESHOLD = 8;
+/** Touch-input deadzone in px. Prevents accidental FX engagement from
+ *  unintentional finger jitter when you just want to tap a note. */
+const DEADZONE = 24;
 
 export function NoteZone() {
   const audio = useAudio();
@@ -55,14 +57,37 @@ export function NoteZone() {
     e.preventDefault();
     const dx = e.clientX - entry.startX;
     const dy = e.clientY - entry.startY;
-    if (Math.hypot(dx, dy) < THRESHOLD) return;
+    const dist = Math.hypot(dx, dy);
 
-    const label = applyNoteFX(dx, dy);
+    // Inside the deadzone — clear any engaged FX and snap any octave-shift
+    // back to the base note so a clean tap doesn't bend pitch.
+    if (dist < DEADZONE) {
+      if (fx) {
+        setFX(null);
+        audio.setCurrentFX(null);
+      }
+      if (entry.octShifted) {
+        engineReleaseNote(entry.note);
+        const baseNote = noteFor(entry.index, 0);
+        engineAttackNote(baseNote);
+        entry.note = baseNote;
+        entry.octShifted = false;
+      }
+      return;
+    }
+
+    // Soft engagement past the deadzone radius.
+    const scale = (dist - DEADZONE) / dist;
+    const cleanDx = dx * scale;
+    const cleanDy = dy * scale;
+
+    const label = applyNoteFX(cleanDx, cleanDy);
     setFX(label);
     audio.setCurrentFX(label);
 
-    // Y+ (down) → temporary octave -1: swap the playing note.
-    const wantOctShift = dy > 30;
+    // Y+ (down) → temporary octave -1, using the cleaned delta so the
+    // octave-snap also respects the deadzone.
+    const wantOctShift = cleanDy > 30;
     if (wantOctShift !== entry.octShifted) {
       engineReleaseNote(entry.note);
       const nextNote = noteFor(entry.index, wantOctShift ? -1 : 0);

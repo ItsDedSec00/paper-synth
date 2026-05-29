@@ -97,6 +97,14 @@ export function useAudioEngine(): AudioEngineState {
     }
   }, [started]);
 
+  // Build the synth + FX chain as soon as the hook mounts, even before any
+  // user gesture. The audio context stays suspended until the first key
+  // tap fires Tone.start(), but having the graph ready means there's no
+  // perceptible delay between touching a key and hearing it.
+  useEffect(() => {
+    initEngine().catch((e) => console.warn('engine preinit failed', e));
+  }, []);
+
   // Propagate wave changes to the engine
   useEffect(() => {
     if (started) setWaveEngine(wave);
@@ -126,11 +134,13 @@ export function useAudioEngine(): AudioEngineState {
       const type = SCALE_CHORD_TYPES[index];
       const intervals = VOICINGS[type];
       const notes = getChordNotes(root, intervals).map((n) => transposeOctave(n, octave));
+      // First touch counts as the user gesture — unlock audio context.
+      if (!started) void start();
       attackChordEngine(notes);
       setPlayPulse((p) => p + 1);
       return notes;
     },
-    [key, octave],
+    [key, octave, started, start],
   );
 
   const releaseChord = useCallback((notes: string[]) => {
@@ -141,11 +151,12 @@ export function useAudioEngine(): AudioEngineState {
     (index: number) => {
       const baseNote = SCALE_ROOTS[key][index];
       const note = transposeOctave(baseNote, octave);
+      if (!started) void start();
       attackNoteEngine(note);
       setPlayPulse((p) => p + 1);
       return note;
     },
-    [key, octave],
+    [key, octave, started, start],
   );
 
   const releaseNote = useCallback((note: string) => {
