@@ -172,24 +172,28 @@ export function useAudioEngine(): AudioEngineState {
     return () => document.removeEventListener('visibilitychange', onHide);
   }, []);
 
-  // iOS watchdog — Safari can suspend the AudioContext under memory or
-  // foreground-app pressure even while the tab is visible. When that
-  // happens the synth UI still shows keys as held but no sound comes out.
-  // Poll once per second; if the context dropped out of 'running', try to
-  // resume it. This is allowed without a fresh user gesture as long as
-  // the resume comes from the same origin that originally unlocked.
+  // Watchdog — both Safari and Chrome can park the AudioContext under
+  // background-tab, memory or system-audio-grab pressure. The UI keeps
+  // showing keys as held while no sound is coming out. Poll 4× per
+  // second and also subscribe to the raw context state event so recovery
+  // happens within a frame of the dropout.
   useEffect(() => {
     if (!started) return;
-    const id = window.setInterval(() => {
+    const resumeIfNeeded = () => {
       try {
-        if (Tone.getContext().state !== 'running') {
-          void Tone.getContext().resume();
-        }
+        const ctx = Tone.getContext();
+        if (ctx.state !== 'running') void ctx.resume();
       } catch {
-        /* ignore — resume can throw if context closed */
+        /* ignore — resume can throw if context already closed */
       }
-    }, 1000);
-    return () => window.clearInterval(id);
+    };
+    const id = window.setInterval(resumeIfNeeded, 250);
+    const raw = Tone.getContext().rawContext as AudioContext;
+    raw.addEventListener?.('statechange', resumeIfNeeded);
+    return () => {
+      window.clearInterval(id);
+      raw.removeEventListener?.('statechange', resumeIfNeeded);
+    };
   }, [started]);
 
   return {

@@ -86,25 +86,26 @@ export async function initEngine(): Promise<Engine> {
     const recorderTap = new Tone.Gain(1);
     const masterGain = new Tone.Gain(0.6);
 
-    // Stage 1 — gentle bus glue. Long release so it never pumps audibly
-    // on sustained held chords (which is what killed the tone before).
+    // Stage 1 — barely-there bus glue. Slow attack (40 ms) lets the
+    // transient of each new key pass through cleanly so a fast riff
+    // doesn't sound pumped or clicky. Long release keeps the gain
+    // movement smooth.
     const compressor = new Tone.Compressor({
-      threshold: -10,
-      ratio: 2.5,
-      attack: 0.015,
-      release: 0.3,
-      knee: 12,
+      threshold: -12,
+      ratio: 2,
+      attack: 0.04,
+      release: 0.35,
+      knee: 16,
     });
 
-    // Stage 2 — soft limiter as a brick wall against isolated peaks
-    // (chord + note + reverb wet in phase). Release long enough that it
-    // stays musical on sustained content.
+    // Stage 2 — extra-soft brick wall. Threshold close to 0 dB and a
+    // big knee so this stage only engages on rare in-phase peaks.
     const safeLimiter = new Tone.Compressor({
-      threshold: -2,
-      ratio: 12,
-      attack: 0.003,
-      release: 0.18,
-      knee: 4,
+      threshold: -1,
+      ratio: 8,
+      attack: 0.005,
+      release: 0.22,
+      knee: 6,
     });
 
     synth.chain(

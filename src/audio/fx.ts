@@ -21,6 +21,12 @@ function rampPolyDetune(
     synth.set({ detune: cents });
     return;
   }
+  // Ramp every voice individually. We DO NOT call synth.set({ detune })
+  // afterwards — it would immediately snap all voices back to `cents`,
+  // wiping out the ramp we just scheduled. New voices spawned during a
+  // chord morph stay at the synth's template value (0 ¢) for one frame
+  // before the next move event catches them up; that's an inaudible
+  // glitch compared to losing the held note.
   for (const voice of voices) {
     const det = voice?.detune;
     if (det && typeof det.rampTo === 'function') {
@@ -28,9 +34,6 @@ function rampPolyDetune(
       det.rampTo(cents, rampTime);
     }
   }
-  // Also update the synth's template so future-spawned voices inherit
-  // the bent pitch (otherwise a new voice would start at 0 ¢).
-  synth.set({ detune: cents });
 }
 
 /**
